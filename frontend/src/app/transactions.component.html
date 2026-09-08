@@ -1,0 +1,54 @@
+<section class="surface overflow-hidden" [attr.aria-busy]="busy">
+  <div class="flex items-center justify-between gap-4 px-6 py-5">
+    <h2 class="text-lg font-semibold">{{ title }}</h2>
+    <span class="text-sm text-slate-500">{{ data.totalElements }}</span>
+  </div>
+  <div class="overflow-x-auto">
+    @if (copyError) { <p role="alert" class="px-6 pb-3 text-sm text-red-700">{{ copyError }}</p> }
+    <table class="w-full text-left text-sm">
+      <caption class="sr-only">{{ title }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{{ text.id }}</th>
+          @if (showType) { <th scope="col">{{ text.type }}</th> }
+          <th scope="col" class="text-right">{{ text.amount }}</th>
+          <th scope="col">{{ text.date }}</th>
+          <th scope="col">{{ text.status }}</th>
+          <th scope="col">{{ text.confirmed }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of data.items; track row.id || row.depositId) {
+          <tr>
+            <td class="max-w-64">
+              <div class="flex items-center gap-2">
+                <span class="min-w-0 flex-1 truncate" [title]="transactionId(row)">{{ transactionId(row) }}</span>
+                <button type="button" class="copy-button" [attr.aria-label]="text.copy + ' ' + text.id" [title]="copiedId === transactionId(row) ? text.copied : text.copy" (click)="copy(row)">
+                  @if (copiedId === transactionId(row)) {
+                    <span class="text-emerald-700">{{ text.copied }}</span>
+                  } @else {
+                    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                  }
+                </button>
+              </div>
+            </td>
+            @if (showType) { <td class="whitespace-nowrap">{{ type(row) }}</td> }
+            <td class="whitespace-nowrap text-right font-semibold tabular-nums" [title]="details(row)">{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+            <td class="whitespace-nowrap text-slate-500">{{ row.createdAt | date:'dd.MM.yyyy, HH:mm:ss' }}</td>
+            <td><span class="status" [class.pending]="row.status === 'PENDING' || row.status === 'DUPLICATED' || row.status === 'PARTIAL_RETURN' || row.status === 'STAKE_RETURNED'" [class.failed]="row.status === 'NOT_FOUND' || row.status === 'WRONG_TRANSACTION' || row.status === 'LOST'">{{ status(row) }}</span></td>
+            <td class="whitespace-nowrap text-slate-500">{{ row.completedAt ? (row.completedAt | date:'dd.MM.yyyy, HH:mm:ss') : '—' }}</td>
+          </tr>
+        } @empty {
+          <tr><td [attr.colspan]="showType ? 6 : 5" class="h-28 text-center text-slate-500">{{ busy ? text.loading : emptyText }}</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-sm">
+    <span class="text-slate-500">{{ text.page }} {{ data.totalPages ? data.page + 1 : 0 }} {{ text.of }} {{ data.totalPages }}</span>
+    <div class="flex gap-2">
+      <button type="button" class="button-small" [disabled]="busy || data.page === 0" (click)="pageChange.emit(data.page - 1)">{{ text.previous }}</button>
+      <button type="button" class="button-small" [disabled]="busy || data.page + 1 >= data.totalPages" (click)="pageChange.emit(data.page + 1)">{{ text.next }}</button>
+    </div>
+  </div>
+</section>

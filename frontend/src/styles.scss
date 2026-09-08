@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply m-0 font-sans antialiased; }
+  button, input, a, summary { @apply outline-offset-4; }
+  :focus-visible { @apply outline-2 outline-accent; }
+  button { @apply disabled:cursor-not-allowed disabled:opacity-40; }
+  th { @apply border-y border-slate-100 bg-slate-50 px-6 py-3 text-xs font-medium text-slate-500; }
+  td { @apply border-t border-slate-100 px-6 py-4; }
+}
+
+@layer components {
+  .surface { @apply rounded-xl border border-slate-200 bg-white; }
+  .button-primary { @apply rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 disabled:hover:bg-accent; }
+  .button-secondary { @apply rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50; }
+  .button-small { @apply rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50; }
+  .copy-button { @apply inline-flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-ink; }
+  .input { @apply rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-ink disabled:bg-slate-50 disabled:text-slate-400; }
+  .amount-option { @apply cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-4 text-center text-lg font-semibold; }
+  .amount-option.selected { @apply border-accent bg-blue-50 text-accent; }
+  .amount-option:has(input:focus-visible) { @apply outline outline-2 outline-offset-2 outline-accent; }
+  fieldset:disabled .amount-option { @apply cursor-not-allowed opacity-40; }
+  .wallet-panel { @apply rounded-2xl bg-[#254cc0] p-6 text-white sm:p-8; }
+  .status { @apply inline-block whitespace-nowrap rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800; }
+  .status.pending { @apply bg-amber-50 text-amber-800; }
+  .status.failed { @apply bg-red-50 text-red-800; }
+  .language-active { @apply font-semibold text-accent underline decoration-2 underline-offset-4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

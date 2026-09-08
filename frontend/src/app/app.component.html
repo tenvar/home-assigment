@@ -1,0 +1,141 @@
+<div class="min-h-screen bg-canvas text-ink">
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-end gap-4 px-5 py-5 sm:px-8">
+      <div class="flex items-center gap-3 sm:gap-5">
+        <nav class="flex gap-3 text-sm" aria-label="English / Беларуская">
+          <a href="/en/" [class.language-active]="language === 'en'" lang="en">English</a>
+          <a href="/be/" [class.language-active]="language === 'be'" lang="be">Беларуская</a>
+        </nav>
+        <button type="button" class="button-primary" [disabled]="registering || operations.length > 0 || completing" (click)="createPlayer()">
+          {{ registering ? text.creating : text.createPlayer }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl space-y-6 px-5 py-8 sm:px-8 sm:py-10">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">{{ text.title }}</h1>
+        <p class="mt-3 text-slate-500">{{ text.intro }}</p>
+      </div>
+      @if (userId) {
+        <div class="max-w-full text-sm text-slate-500">
+          <span class="block">{{ text.player }}</span>
+          <span class="mt-1 block break-all text-xs">{{ userId }}</span>
+        </div>
+      }
+    </div>
+
+    @if (!userId) {
+      <div class="rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">{{ text.welcome }}</div>
+    }
+    @if (error) {
+      <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">{{ error }}</div>
+    }
+    @if (notice) {
+      <div role="status" class="rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">{{ notice }}</div>
+    }
+
+    @for (operation of operations; track operation.key) {
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+        <div>
+          <strong>{{ operation.kind === 'bet' ? text.stake : text.depositAmount }}: {{ operation.amount | currency:'EUR' }}</strong>
+          <p class="mt-1">{{ inFlight.has(operation.key) ? text.sending : text.uncertain }}</p>
+        </div>
+        <button type="button" class="button-small" [disabled]="inFlight.has(operation.key)" (click)="execute(operation)">{{ text.retry }}</button>
+      </div>
+    }
+
+    <section class="wallet-panel" [attr.aria-label]="text.available">
+      <div class="grid gap-6 sm:grid-cols-2">
+        <div>
+          <p class="text-sm text-blue-100">{{ text.cash }}</p>
+          <p class="mt-2 text-4xl font-semibold tabular-nums sm:text-5xl">{{ (wallet?.cash || '0.00') | currency:'EUR' }}</p>
+        </div>
+        <div class="sm:border-l sm:border-white/20 sm:pl-8">
+          <p class="text-sm text-blue-100">{{ text.bonus }}</p>
+          <p class="mt-2 text-4xl font-semibold tabular-nums sm:text-5xl">{{ (wallet?.bonus || '0.00') | currency:'EUR' }}</p>
+        </div>
+      </div>
+      <div class="mt-7 border-t border-white/20 pt-5">
+        @if (wallet?.bonusProgress; as bonus) {
+          <div class="flex flex-wrap justify-between gap-2 text-sm">
+            <span>{{ text.wagering }} · {{ bonusStatus(bonus.status) }}</span>
+            <span class="tabular-nums">{{ bonus.wageredAmount | currency:'EUR' }} / {{ bonus.targetAmount | currency:'EUR' }}</span>
+          </div>
+          <div role="progressbar" [attr.aria-label]="text.wagering" [attr.aria-valuenow]="progress" aria-valuemin="0" aria-valuemax="100" class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+            <div class="h-full rounded-full bg-white" [style.width.%]="progress"></div>
+          </div>
+          @if (bonus.status === 'ACTIVE') {
+            <p class="mt-3 text-xs text-blue-100">{{ text.expires }} {{ bonus.expiresAt | date:'dd.MM.yyyy, HH:mm' }}</p>
+          }
+        } @else {
+          <p class="text-sm">{{ text.bonusOffer }}</p>
+        }
+        <p class="mt-2 max-w-3xl text-xs leading-relaxed text-blue-100">{{ text.wagerHelp }}</p>
+      </div>
+    </section>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <section class="surface p-6">
+        <h2 class="text-xl font-semibold">{{ text.deposit }}</h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ text.depositHelp }}</p>
+        <fieldset class="mt-6" [disabled]="!wallet || registering">
+          <legend class="mb-3 text-sm font-medium">{{ text.depositAmount }}</legend>
+          <div class="grid grid-cols-3 gap-3">
+            @for (amount of depositAmounts; track amount) {
+              <label class="amount-option" [class.selected]="depositAmount === amount">
+                <input type="radio" name="depositAmount" [value]="amount" [(ngModel)]="depositAmount" class="sr-only">
+                {{ amount | currency:'EUR':'symbol':'1.0-0' }}
+              </label>
+            }
+          </div>
+          <button type="button" class="button-primary mt-5 w-full" (click)="deposit()">{{ text.depositAction }} {{ depositAmount | currency:'EUR':'symbol':'1.0-0' }}</button>
+        </fieldset>
+      </section>
+
+      <section class="surface p-6">
+        <h2 class="text-xl font-semibold">{{ text.play }}</h2>
+        <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ text.playHelp }}</p>
+        <form class="mt-6" (ngSubmit)="play()">
+          <label for="stake" class="mb-3 block text-sm font-medium">{{ text.stake }}</label>
+          <div class="flex gap-3">
+            <input id="stake" name="stake" type="text" inputmode="decimal" maxlength="19" class="input min-w-0 flex-1" [(ngModel)]="stake" [disabled]="!wallet || playing || registering" required>
+            <button type="submit" class="button-primary min-w-28" [disabled]="!wallet || playing || registering">{{ playing ? text.playing : text.playAction }}</button>
+          </div>
+        </form>
+        <div aria-live="polite" class="mt-5 flex min-h-14 items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
+          <span class="text-sm text-slate-600">{{ resultLabel }}</span>
+          @if (round) { <strong class="whitespace-nowrap text-lg tabular-nums" [attr.aria-label]="text.payout">{{ round.payout | currency:'EUR' }}</strong> }
+        </div>
+      </section>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="button" class="button-small" [disabled]="!userId || loading" (click)="refresh()">{{ loading ? text.loading : text.refresh }}</button>
+    </div>
+
+    <app-transactions [title]="text.deposits" [data]="deposits" [emptyText]="text.emptyDeposits" [busy]="loading" (pageChange)="changePage('deposits', $event)" />
+
+    <section class="surface p-6">
+      <p class="mb-4 text-sm text-slate-500">{{ text.callbackHelp }}</p>
+      <form class="flex flex-wrap items-end gap-3" (ngSubmit)="sendCallback()">
+        <div class="min-w-0 flex-1 basis-64">
+          <label for="depositId" class="mb-2 block text-sm font-medium">{{ text.depositId }}</label>
+          <input id="depositId" name="depositId" type="text" maxlength="36" class="input w-full" [(ngModel)]="depositId" [disabled]="!wallet || completing || registering" required>
+        </div>
+        <div class="w-full sm:w-48">
+          <label for="callbackAmount" class="mb-2 block text-sm font-medium">{{ text.callbackAmount }}</label>
+          <input id="callbackAmount" name="callbackAmount" type="text" inputmode="decimal" maxlength="19" class="input w-full" [(ngModel)]="callbackAmount" [disabled]="!wallet || completing || registering" required>
+        </div>
+        <button type="submit" class="button-secondary" [disabled]="!wallet || completing || registering || !depositId.trim() || !callbackAmount.trim()">{{ completing ? text.sending : text.callback }}</button>
+      </form>
+    </section>
+
+    <app-transactions [title]="text.callbackHistory" [data]="callbacks" [emptyText]="text.emptyCallbacks" [busy]="loading" (pageChange)="changePage('callbacks', $event)" />
+
+    <app-transactions [title]="text.history" [data]="ledger" [emptyText]="text.emptyHistory" [busy]="loading" [showType]="true" (pageChange)="changePage('ledger', $event)" />
+    <footer class="pb-3 pt-2 text-center text-xs text-slate-500">{{ text.demo }}</footer>
+  </main>
+</div>
